@@ -175,16 +175,39 @@ void eval(char *cmdline)
         argv[i] = (char *) malloc((MAXLINE * sizeof(char)));
 
     int bg = parseline(cmdline, argv);
-
+	
+	int pid;
+	sigset_t mask_all, mask_one, prev_one;
+	
+	
+    builtin_cmd(argv);
+	
+	sigfillset(&mask_all);
+	sigemptyset(&mask_one);
+	sigaddset(&mask_one, SIGCHLD);
+	signal(SIGCHLD, sigchld_handler);
+	initjobs(jobs);
+	
+	while (1) {
+		sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
+		if ((pid = fork()) == 0) { /* Child process */
+			sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
+			execve(argv[0], argv, NULL);
+		}
+		sigprocmask(SIG_BLOCK, &mask_all, NULL); /* Parent Process */
+		addjob(jobs, pid, FG, cmdline); /* Add the child to the job list */
+		sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
+	}	
+	exit(0);
+			
     /* print to test cmdline and argv
        printf("%zu\n", strlen(cmdline));
        printf("%s\n", cmdline);
        for (i = 0; argv[i] != NULL; i++) 
        printf("%s\n", argv[i]);
-
-*/
-
-    builtin_cmd(argv);
+     */
+	 
+	 
 
     return;
 }
@@ -288,6 +311,10 @@ void do_bgfg(char **argv)
  */
 void waitfg(pid_t pid)
 {
+	while (fgpid(jobs) == pid)
+	{
+		sleep(1);
+	}
     return;
 }
 
@@ -304,6 +331,16 @@ void waitfg(pid_t pid)
  */
 void sigchld_handler(int sig) 
 {
+	sigset_t mask_all, prev_all;
+	pid_t pid;
+	
+	sigfillset(&mask_all);
+	while ((pid = waitpid(-1, NULL, 0)) > 0) { /* Reap a zombie child */
+		sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+		deletejob(jobs, pid); /* Delete the child from the job list */
+		sigprocmask(SIG_SETMASK, &prev_all, NULL);
+	}
+		
     return;
 }
 
