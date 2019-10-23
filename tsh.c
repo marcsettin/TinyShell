@@ -197,10 +197,10 @@ void eval(char *cmdline)
     sigprocmask(SIG_BLOCK, &mask_all, NULL); /* Parent Process */
     addjob(jobs, pid, FG, cmdline); /* Add the child to the job list */
     sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
-    if (!bg)
-        waitfg(pid);
-
-    exit(0);
+    if (bg)
+        printf("([%d] (%d) %s", pid2jid(pid), pid, cmdline);
+    else
+        waitfg(pid); 
 
     /* print to test cmdline and argv
        printf("%zu\n", strlen(cmdline));
