@@ -177,38 +177,45 @@ void eval(char *cmdline)
     int bg = parseline(cmdline, argv);
 
     int pid;
-    sigset_t mask_all, mask_one, prev_one;
+    sigset_t mask_all, prev_all, mask_one, prev_one;
 
 
-    builtin_cmd(argv);
+    if (!builtin_cmd(argv)) {
 
-    sigfillset(&mask_all);
-    sigemptyset(&mask_one);
-    sigaddset(&mask_one, SIGCHLD);
-    signal(SIGCHLD, sigchld_handler);
-    initjobs(jobs);
+        sigfillset(&mask_all);
+        sigemptyset(&mask_one);
+        sigaddset(&mask_one, SIGCHLD);
+        signal(SIGCHLD, sigchld_handler);
+        initjobs(jobs);
 
 
-    sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
-    if ((pid = fork()) == 0) { /* Child process */
-        sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
-        execve(argv[0], argv, NULL);
+        sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
+        if ((pid = fork()) == 0) { /* Child process */
+            sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
+            execve(argv[0], argv, NULL);
+        }
+        sigprocmask(SIG_BLOCK, &mask_all, &prev_all); /* Parent Process */
+
+        if (bg) 
+            addjob(jobs, pid, BG, cmdline); /* Add the child to the job list */  
+        else 
+            addjob(jobs, pid, FG, cmdline); /* Add the child to the job list */
+      
+        sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */       
+      
+
+        if (bg) 
+             printf("[%d] (%d) %s", pid2jid(pid), pid, cmdline);
+        else
+             waitfg(pid);
+
+        /* print to test cmdline and argv
+           printf("%zu\n", strlen(cmdline));
+           printf("%s\n", cmdline);
+           for (i = 0; argv[i] != NULL; i++) 
+           printf("%s\n", argv[i]);
+           */
     }
-    sigprocmask(SIG_BLOCK, &mask_all, NULL); /* Parent Process */
-    addjob(jobs, pid, FG, cmdline); /* Add the child to the job list */
-    sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
-    if (bg)
-        printf("([%d] (%d) %s", pid2jid(pid), pid, cmdline);
-    else
-        waitfg(pid); 
-
-    /* print to test cmdline and argv
-       printf("%zu\n", strlen(cmdline));
-       printf("%s\n", cmdline);
-       for (i = 0; argv[i] != NULL; i++) 
-       printf("%s\n", argv[i]);
-       */
-
 
 
     return;
@@ -288,13 +295,14 @@ int builtin_cmd(char **argv)
     if (!strcmp(argv[0], "quit")) {
         exit(0);
     } else  if (!strcmp(argv[0], "jobs")) {
-
+        listjobs(jobs);
+        return 1;
     } else  if (!strcmp(argv[0], "kill")) {
-
+        return 2;
     } else  if (!strcmp(argv[0], "fg")) {
-
+        return 3;
     }  else if (!strcmp(argv[0], "bg")) {
-
+        return 4;
     } 
     return 0;     /* not a builtin command */
 
@@ -338,7 +346,7 @@ void sigchld_handler(int sig)
     pid_t pid;
 
     sigfillset(&mask_all);
-    while ((pid = waitpid(-1, &status, 0)) > 0) { /* Reap a zombie child */
+    while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) { /* Reap a zombie child */
         if (WIFEXITED(status)){
             sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
             deletejob(jobs, pid); /* Delete the child from the job list */
