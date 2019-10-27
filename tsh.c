@@ -186,7 +186,6 @@ void eval(char *cmdline)
         sigemptyset(&mask_one);
         sigaddset(&mask_one, SIGCHLD);
         signal(SIGCHLD, sigchld_handler);
-        initjobs(jobs);
 
 
         sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
@@ -209,12 +208,6 @@ void eval(char *cmdline)
         else
              waitfg(pid);
 
-        /* print to test cmdline and argv
-           printf("%zu\n", strlen(cmdline));
-           printf("%s\n", cmdline);
-           for (i = 0; argv[i] != NULL; i++) 
-           printf("%s\n", argv[i]);
-           */
     }
 
 
