@@ -1,4 +1,4 @@
-./sdriver.pl -t trace05.txt -s ./tsh -a "-p"
+git ./sdriver.pl -t trace05.txt -s ./tsh -a "-p"
 #
 # trace05.txt - Process jobs builtin command.
 #

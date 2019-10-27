@@ -185,12 +185,14 @@ void eval(char *cmdline)
         sigfillset(&mask_all);
         sigemptyset(&mask_one);
         sigaddset(&mask_one, SIGCHLD);
+         sigaddset(&mask_one, SIGINT);
         signal(SIGCHLD, sigchld_handler);
-
+        signal(SIGINT, sigint_handler);
 
         sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
         if ((pid = fork()) == 0) { /* Child process */
             sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
+            setpgid(0, 0);
             execve(argv[0], argv, NULL);
         }
         sigprocmask(SIG_BLOCK, &mask_all, &prev_all); /* Parent Process */
@@ -200,7 +202,8 @@ void eval(char *cmdline)
         else 
             addjob(jobs, pid, FG, cmdline); /* Add the child to the job list */
       
-        sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */       
+        sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
+        
       
 
         if (bg) 
@@ -338,6 +341,19 @@ void sigchld_handler(int sig)
     sigset_t mask_all, prev_all;
     pid_t pid;
 
+    if (WIFSIGNALED(&status)) {
+         switch(WTERMSIG(&status)) {
+            case 2:
+                printf("The job was terminated by signal 2 - SIGINT");
+                break;
+            default: 
+                printf("The job was terminated by a signal");
+                break;
+    }
+    }
+       
+        
+
     sigfillset(&mask_all);
     while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) { /* Reap a zombie child */
         if (WIFEXITED(status)){
@@ -355,7 +371,12 @@ void sigchld_handler(int sig)
  *    to the foreground job.  
  */
 void sigint_handler(int sig) 
-{
+{   
+    printf("\nSIGINT\n");
+    pid_t fgpid_t = fgpid(jobs);
+    if (fgpid_t) {
+        kill(fgpid_t, SIGINT);
+    }
     return;
 }
 
