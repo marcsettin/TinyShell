@@ -1,11 +1,24 @@
+<<<<<<< HEAD
 ./sdriver.pl -t trace05.txt -s ./tsh -a "-p"
+=======
+git ./sdriver.pl -t trace05.txt -s ./tsh -a "-p"
+>>>>>>> 1feb0ec01dc62e5c9bc9843df9e2b09d134dcad0
 #
 # trace05.txt - Process jobs builtin command.
 #
 tsh> ./myspin 2 &
+<<<<<<< HEAD
 [1] (17499) ./myspin 2 &
 tsh> ./myspin 3 &
 [2] (17507) ./myspin 3 &
 tsh> jobs
 [1] (17499) Running ./myspin 2 &
 [2] (17507) Running ./myspin 3 &
+=======
+[1] (138649) ./myspin 2 &
+tsh> ./myspin 3 &
+[2] (138655) ./myspin 3 &
+tsh> jobs
+[1] (138649) Running ./myspin 2 &
+[2] (138655) Running ./myspin 3 &
+>>>>>>> 1feb0ec01dc62e5c9bc9843df9e2b09d134dcad0
