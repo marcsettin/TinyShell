@@ -144,7 +144,7 @@ int main(int argc, char **argv)
             exit(0);
         }
 
-        /* Evaluate the command line */
+        /* Evaluate the command line */ 
         eval(cmdline);
         fflush(stdout);
         fflush(stdout);
@@ -186,8 +186,7 @@ void eval(char *cmdline)
         sigemptyset(&mask_one);
         sigaddset(&mask_one, SIGCHLD);
         signal(SIGCHLD, sigchld_handler);
-        initjobs(jobs);
-
+        
 
         sigprocmask(SIG_BLOCK, &mask_one, &prev_one); /* Block SIGCHLD */
         if ((pid = fork()) == 0) { /* Child process */
