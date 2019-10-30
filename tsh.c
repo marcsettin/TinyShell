@@ -328,6 +328,7 @@ void sigchld_handler(int sig)
     int status;
     sigset_t mask_all, prev_all;
     pid_t pid;
+    //struct job_t stJob;
 
     sigfillset(&mask_all);
     while ((pid = waitpid(-1, &status, WNOHANG | WUNTRACED)) > 0) { /* Reap a zombie child */
@@ -342,6 +343,16 @@ void sigchld_handler(int sig)
 			sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
             deletejob(jobs, pid); /* Delete the child from the job list */
             sigprocmask(SIG_SETMASK, &prev_all, NULL);
+        }
+        else if (WIFSTOPPED(status)) {
+            printf("Job [%d] (%d) stopped by signal %d\n", pid2jid(pid), pid, WSTOPSIG(status));
+			sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+            //stJob = getjobpid(jobs, pid);
+            //stJob.state = ST;
+            (*(getjobpid(jobs, pid))).state=ST;
+
+            sigprocmask(SIG_SETMASK, &prev_all, NULL);
+
         }
     }
     
@@ -368,7 +379,11 @@ void sigint_handler(int sig)
  *     foreground job by sending it a SIGTSTP.  
  */
 void sigtstp_handler(int sig) 
-{
+{ 
+    pid_t fgpid_t = fgpid(jobs);
+    if (fgpid_t) {
+	    kill(fgpid_t, SIGTSTP);
+    }
     return;
 }
 
