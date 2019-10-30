@@ -284,7 +284,8 @@ int builtin_cmd(char **argv)
     } else  if (!strcmp(argv[0], "kill")) {
         return 2;
     } else  if (!strcmp(argv[0], "fg")) {
-        return 3;
+        do_bgfg(argv);
+        return 1;
     }  else if (!strcmp(argv[0], "bg")) {
         do_bgfg(argv);
         return 1;
@@ -318,7 +319,15 @@ void do_bgfg(char **argv)
 
         kill(pid, SIGCONT);
     } else if (!strcmp(argv[0], "fg")) {
-
+		if ((*(getjobpid(jobs, pid))).state==ST)
+		{
+			kill(pid, SIGCONT);
+		}
+		sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
+        (*(getjobpid(jobs, pid))).state = FG;
+        sigprocmask(SIG_SETMASK, &prev_all, NULL);
+		waitfg(pid);
+       // printf("[%d] (%d) %s", pid2jid(pid), pid, (*(getjobpid(jobs, pid))).cmdline);
     }
     return;
 }
