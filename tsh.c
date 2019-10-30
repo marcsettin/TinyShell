@@ -190,7 +190,11 @@ void eval(char *cmdline)
         if ((pid = fork()) == 0) { /* Child process */
             sigprocmask(SIG_SETMASK, &prev_one, NULL); /* Unblock SIGCHILD */
             setpgid(0, 0);
-            execve(argv[0], argv, NULL);
+            if(execve(argv[0], argv, NULL)<0)
+			{
+				printf("%s: Command not found\n", argv[0]);
+				exit(0);
+			}
         }
         sigprocmask(SIG_BLOCK, &mask_all, &prev_all); /* Parent Process */
 
@@ -289,7 +293,7 @@ int builtin_cmd(char **argv)
     }  else if (!strcmp(argv[0], "bg")) {
         do_bgfg(argv);
         return 1;
-    } 
+    }
     return 0;     /* not a builtin command */
 
 }
@@ -304,11 +308,26 @@ void do_bgfg(char **argv)
 
     sigfillset(&mask_all);
 
-    if (argv[1][0] == '%') {
-        pid = (*(getjobjid(jobs, atoi(&(argv[1][1]))))).pid;
-            }
+    if (argv[1] == NULL)
+	{
+		printf("%s command requires PID or %%jobid argument\n", argv[0]);
+		return;
+	}
+	else if (argv[1][0] != 37 && (argv[1][0] <= 48 || argv[1][0] >= 57))
+	{
+		printf("%s: argument must be PID or %%jobid\n", argv[0]);
+		return;
+	}
+	else if (argv[1][0] == '%') {
+        if ()
+		{
+			//check for job 
+		}
+		pid = (*(getjobjid(jobs, atoi(&(argv[1][1]))))).pid;
+    }
     else {
-        pid = atoi(argv[1]);
+        //check for process
+		pid = atoi(argv[1]);
     }
 
     if (!strcmp(argv[0], "bg")) {
@@ -316,18 +335,16 @@ void do_bgfg(char **argv)
         (*(getjobpid(jobs, pid))).state = BG;
         sigprocmask(SIG_SETMASK, &prev_all, NULL);
         printf("[%d] (%d) %s", pid2jid(pid), pid, (*(getjobpid(jobs, pid))).cmdline);
-
         kill(pid, SIGCONT);
     } else if (!strcmp(argv[0], "fg")) {
-		if ((*(getjobpid(jobs, pid))).state==ST)
+		if ((*(getjobpid(jobs, pid))).state == ST)
 		{
-			kill(pid, SIGCONT);
+			kill(-pid, SIGCONT);
 		}
 		sigprocmask(SIG_BLOCK, &mask_all, &prev_all);
         (*(getjobpid(jobs, pid))).state = FG;
         sigprocmask(SIG_SETMASK, &prev_all, NULL);
 		waitfg(pid);
-       // printf("[%d] (%d) %s", pid2jid(pid), pid, (*(getjobpid(jobs, pid))).cmdline);
     }
     return;
 }
@@ -395,7 +412,7 @@ void sigint_handler(int sig)
 {   
     pid_t fgpid_t = fgpid(jobs);
     if (fgpid_t) {
-        kill(fgpid_t, SIGINT);
+        kill(-fgpid_t, SIGINT);
     }
     return;
 }
@@ -409,7 +426,7 @@ void sigtstp_handler(int sig)
 { 
     pid_t fgpid_t = fgpid(jobs);
     if (fgpid_t) {
-        kill(fgpid_t, SIGTSTP);
+        kill(-fgpid_t, SIGTSTP);
     }
     return;
 }
